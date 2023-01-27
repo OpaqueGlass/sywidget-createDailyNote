@@ -1,0 +1,24 @@
+body[darkmode] {
+    color: gainsboro;
+}
+
+#notebooklist > *:hover {
+    background-color: #1186d91f;
+}
+
+#notebooklist {
+    -moz-user-select: none;
+    -o-user-select: none;
+    -khtml-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    list-style-type:none;
+    padding-left: 15px;
+}
+#notebooklist > * {
+    margin-bottom: 4px;
+}
+.defaultnotebook {
+    color: #4CB0F9;
+}
