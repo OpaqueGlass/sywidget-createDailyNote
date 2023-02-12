@@ -68,8 +68,8 @@ function addDailyNote() {
         if (g_dailyNoteLeftClick) {
           let dailyNotePanel = document.getElementById("dailyNotePanel");
           if (dailyNotePanel.style.display === "none") {
-            adjustPanelPosition(dailyNoteBtn, dailyNotePanel);
             dailyNotePanel.style.display = "block";
+            adjustPanelPosition(dailyNoteBtn, dailyNotePanel);
             window.addEventListener("click", hideDailyNodePanel, false);
           } else {
             dailyNotePanel.style.display = "none";
@@ -91,8 +91,8 @@ function addDailyNote() {
       }else{
         let dailyNotePanel = document.getElementById("dailyNotePanel");
         if (dailyNotePanel.style.display == "none") {
-          adjustPanelPosition(dailyNoteBtn, dailyNotePanel);
           dailyNotePanel.style.display = "block";
+          adjustPanelPosition(dailyNoteBtn, dailyNotePanel);
           // 否则新设定的listener会捕捉到点击然后隐藏
           e.stopPropagation();
           window.addEventListener("click", hideDailyNodePanel, false);
