@@ -53,6 +53,10 @@ export async function queryAPI(sqlstmt){
     if (response.code == 0 && response.data != null){
         return response.data;
     }
+    if (response.msg != "") {
+        throw new Error(`SQL ERROR: ${response.msg}`);
+    }
+    
     return null;
 }
 
@@ -263,8 +267,7 @@ export async function getCurrentDocIdF(){
     try{
         if (isValidStr(thisWidgetId)){
             //通过获取挂件所在页面题头图的data-node-id获取文档id【安卓下跳转返回有问题，原因未知】
-            let thisDocId = $(window.parent.document).find(`div.protyle-content:has(.iframe[data-node-id="${thisWidgetId}"])`)
-            .find(`.protyle-background`).attr("data-node-id");
+            let thisDocId = window.top.document.querySelector(`div.protyle-content:has(.iframe[data-node-id="${thisWidgetId}"]) .protyle-background`).getAttribute("data-node-id");
             if (isValidStr(thisDocId)){
                 console.log("获取当前文档idBy方案B" + thisDocId);
                 return thisDocId;
@@ -278,7 +281,7 @@ export async function getCurrentDocIdF(){
     //widgetId不存在，则使用老方法（存在bug：获取当前展示的页面id（可能不是挂件所在的id））
     if (!isValidStr(thisWidgetId)){
         try{
-            thisDocId = $(window.parent.document).find(".layout__wnd--active .protyle.fn__flex-1:not(.fn__none) .protyle-background").attr("data-node-id");
+            thisDocId = window.top.document.querySelector(".layout__wnd--active .protyle.fn__flex-1:not(.fn__none) .protyle-background").getAttribute("data-node-id");
             console.log("获取当前文档idBy方案C" + thisDocId);
         }catch(err){
             console.warn("获取当前文档id均失败");
@@ -365,3 +368,173 @@ export async function getNodebookList() {
     }
     return null;
 }
+
+/**
+ * 批量添加闪卡
+ * @param {*} ids 
+ * @param {*} deckId 目标牌组Id 
+ * @param {*} oldCardsNum 原有牌组卡牌数（可选）
+ * @returns （若未传入原卡牌数）添加后牌组内卡牌数,  （若传入）返回实际添加的卡牌数； 返回null表示请求失败
+ */
+export async function addRiffCards(ids, deckId, oldCardsNum = -1) {
+    let url = "/api/riff/addRiffCards";
+    let postBody = {
+        deckID: deckId,
+        blockIDs: ids
+    };
+    let response = await postRequest(postBody, url);
+    if (response.code == 0 && response.data != null && "size" in response.data) {
+        console.log(response.data);
+        if (oldCardsNum < 0) {
+            return response.data.size;
+        }else{
+            return response.data.size - oldCardsNum;
+        }
+    }
+    console.warn("添加闪卡出错", response);
+    return null;
+}
+
+/**
+ * 批量移除闪卡
+ * @param {*} ids 
+ * @param {*} deckId 目标牌组Id 
+ * @param {*} oldCardsNum 原有牌组卡牌数（可选）
+ * @returns （若未传入原卡牌数）移除后牌组内卡牌数,  （若传入）返回实际移除的卡牌数； 返回null表示请求失败
+ */
+export async function removeRiffCards(ids, deckId, oldCardsNum = -1) {
+    let url = "/api/riff/removeRiffCards";
+    let postBody = {
+        deckID: deckId,
+        blockIDs: ids
+    };
+    let response = await postRequest(postBody, url);
+    if (response.code == 0 && response.data != null && "size" in response.data) {
+        console.log(response.data);
+        if (oldCardsNum < 0) {
+            return response.data.size;
+        }else{
+            return oldCardsNum - response.data.size;
+        }
+    }
+    console.warn("移除闪卡出错", response);
+    return null;
+}
+
+/**
+ * 获取全部牌组信息
+ * @returns 返回数组
+ * [{"created":"2023-01-05 20:29:48",
+ * "id":"20230105202948-xn12hz6",
+ * "name":"Default Deck",
+ * "size":1,
+ * "updated":"2023-01-19 21:48:21"}]
+ */
+export async function getRiffDecks() {
+    let url = "/api/riff/getRiffDecks";
+    let response = await postRequest({}, url);
+    if (response.code == 0 && response.data != null) {
+        return response.data;
+    }
+    return new Array();
+}
+
+/**
+ * 获取文件内容或链接信息
+ * @param {*} blockid 获取的文件id
+ * @param {*} size 获取的块数
+ * @param {*} mode 获取模式，0为获取html；1为
+ */
+export async function getDoc(blockid, size = 5, mode = 0) {
+    let url = "/api/filetree/getDoc";
+    let response = await postRequest({id: blockid, mode: mode, size: size}, url);
+    if (response.code == 0 && response.data != null) {
+        return response.data;
+    }
+    return undefined;
+}
+
+/**
+ * 获取文档导出预览
+ * @param {*} docid 
+ * @returns 
+ */
+export async function getDocPreview(docid) {
+    let url = "/api/export/preview";
+    let response = await postRequest({id: docid}, url);
+    if (response.code == 0 && response.data != null) {
+        return response.data.html;
+    }
+    return "";
+}
+/**
+ * 删除文档
+ * @param {*} notebookid 笔记本id
+ * @param {*} path 文档所在路径
+ * @returns 
+ */
+export async function removeDocAPI(notebookid, path) {
+    let url = "/api/filetree/removeDoc";
+    let response = await postRequest({"notebook": notebookid, "path": path}, url);
+    if (response.code == 0) {
+        return response.code;
+    }
+    console.warn("删除文档时发生错误", response.msg);
+    return response.code;
+}
+/**
+ * 重命名文档
+ * @param {*} notebookid 笔记本id
+ * @param {*} path 文档所在路径
+ * @param {*} title 新文档名
+ * @returns 
+ */
+export async function renameDocAPI(notebookid, path, title) {
+    let url = "/api/filetree/renameDoc";
+    let response = await postRequest({"notebook": notebookid, "path": path, "title": title}, url);
+    if (response.code == 0) {
+        return response.code;
+    }
+    console.warn("重命名文档时发生错误", response.msg);
+    return response.code;
+}
+
+export function isDarkMode() {
+    return window.top.siyuan.config.appearance.mode == 1 ? true : false;
+}
+
+/**
+ * 通过markdown创建文件
+ * @param {*} notebookid 笔记本id
+ * @param {*} hpath 示例 /父文档1/父文档2/你要新建的文档名
+ * @param {*} md 
+ * @returns 
+ */
+export async function createDocWithMdAPI(notebookid, hpath, md) {
+    let url = "/api/filetree/createDocWithMd";
+    let response = await postRequest({"notebook": notebookid, "path": hpath, "markdown": md}, url);
+    if (response.code == 0 && response.data != null) {
+        return response.data.id;
+    }
+    return null;
+}
+
+/**
+ * 
+ * @param {*} notebookid 
+ * @param {*} path 待创建的新文档path，即，最后应当为一个随机的id.sy
+ * @param {*} title 
+ * @returns 
+ */
+export async function createDocWithPath(notebookid, path, title = "Untitled") {
+    let url = "/api/filetree/createDoc";
+    let response = await postRequest({"notebook": notebookid, "path": path, "md": "", "title": title}, url);
+    if (response.code == 0) {
+        return true;
+    }
+    return false;
+}
+
+export function isMobile() {
+    return window.top.document.getElementById("sidebar") ? true : false;
+};
